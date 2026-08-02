@@ -1,0 +1,2 @@
+﻿SECRET_KEY=4=b1+yuvZMdSL)ntRS=2oTizHNJHf1dtvN0Kum^5*X@!y+@4xSot)x^VCvf!iFS7
+ENCRYPTION_KEY=7lK6vwkGxjEeInft45FjJc1W9eDpOzYTN+xpa4ZlX6w=
