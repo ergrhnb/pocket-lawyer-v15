@@ -526,6 +526,14 @@ class ProviderRotator:
 
 app = FastAPI(title=APP_NAME, version=VERSION)
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "message": str(exc)}
+    )
+
 # ============================================================
 # MIDDLEWARE
 # ============================================================
@@ -2086,5 +2094,6 @@ if (q) {{
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
+
 
 
