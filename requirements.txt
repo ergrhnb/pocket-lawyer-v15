@@ -2,7 +2,7 @@
 uvicorn[standard]==0.24.0
 httpx==0.25.2
 reportlab==4.0.9
-PyMuPDF==1.23.23
+pymupdf==1.23.26
 python-multipart==0.0.6
 pydantic==2.5.0
 python-dotenv==1.0.0

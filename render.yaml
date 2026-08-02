@@ -5,11 +5,18 @@
     repo: https://github.com/ergrhnb/pocket-lawyer-v15
     plan: free
     region: oregon
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --no-cache-dir -r requirements.txt
+      pip install --no-cache-dir pymupdf==1.23.26 --only-binary :all:
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
+      - key: PIP_NO_CACHE_DIR
+        value: "false"
+      - key: SETUPTOOLS_USE_DISTUTILS
+        value: "stdlib"
       - key: SECRET_KEY
         sync: false
       - key: ENCRYPTION_KEY
