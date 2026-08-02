@@ -1,0 +1,36 @@
+﻿# ============================================================
+# POCKET LAWYER v15.0 - COMPLETE DEPENDENCIES
+# ============================================================
+# Core
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.2
+python-multipart==0.0.6
+pydantic==2.5.0
+python-dotenv==1.0.0
+
+# PDF
+reportlab==4.0.9
+pymupdf==1.22.5
+
+# Database
+sqlalchemy==2.0.23
+
+# Auth & Security
+passlib==1.7.4
+bcrypt==4.1.2
+python-jose[cryptography]==3.3.0
+PyJWT==2.8.0
+cryptography==41.0.7
+itsdangerous==2.1.2
+email-validator==2.1.0
+
+# Payments
+stripe==7.0.0
+
+# Real-time
+websockets==12.0
+
+# Analytics
+analytics-python==2.4.0
+prometheus-client==0.19.0
