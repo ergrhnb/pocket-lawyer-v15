@@ -14,7 +14,7 @@ import secrets
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile, WebSocket, Depends, status
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, WebSocket, WebSocketDisconnect, Depends, status
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -1778,7 +1778,7 @@ async def home(request: Request):
                         <span class="case-badge">${{caseItem.category || 'Legal'}}</span>
                     `;
                     card.onclick = () => {{
-                        window.location.href = `/chat?q=${encodeURIComponent(caseItem.title)}`;
+                        window.location.href = "/chat?q=" + encodeURIComponent(caseItem.title);
                     }};
                     grid.appendChild(card);
                 }});
@@ -2086,4 +2086,5 @@ if (q) {{
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
+
 
