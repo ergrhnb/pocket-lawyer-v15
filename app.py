@@ -6,6 +6,27 @@ import json
 import logging
 import asyncio
 import threading
+import httpx
+def validate_telegram_token(bot_token):
+    """Validate Telegram bot token before starting polling"""
+    if not bot_token:
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{bot_token}/getMe"
+        response = httpx.get(url, timeout=10)
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                if data.get("ok"):
+                    logger.info(f"✅ Telegram bot validated: @{data.get('result', {}).get('username', 'unknown')}")
+                    return True
+            except:
+                pass
+        logger.error(f"❌ Telegram token validation failed: {response.status_code}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Telegram validation error: {e}")
+        return False
 import time
 import re
 import io
@@ -2094,6 +2115,7 @@ if (q) {{
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
+
 
 
 
