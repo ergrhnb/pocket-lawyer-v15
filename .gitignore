@@ -1,0 +1,15 @@
+﻿# Secrets
+*.key
+*.pem
+*.crt
+*.p12
+secrets.txt
+keys.txt
+.env
+.env.local
+.env.*.local
+*.log
+*.db
+*.sqlite
+__pycache__/
+*.pyc
