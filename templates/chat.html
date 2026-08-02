@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html>
+<head><title>Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; overflow: hidden; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: #1e293b; border-bottom: 1px solid #334155; }
+.header h2 { color: #60a5fa; }
+.btn { background: #1e293b; color: #e2e8f0; padding: 6px 16px; border-radius: 8px; text-decoration: none; border: 1px solid #334155; cursor: pointer; }
+.chat-container { max-width: 900px; margin: 0 auto; padding: 20px; height: calc(100vh - 80px); display: flex; flex-direction: column; }
+.chat-box { flex:1; overflow-y:auto; padding:20px; background:#0f172a; border:1px solid #1e293b; border-radius:12px; margin-bottom:16px; }
+.message { padding: 12px 18px; margin: 8px 0; border-radius: 12px; max-width: 85%; word-wrap: break-word; line-height: 1.6; }
+.user { background: #3b82f6; margin-left: auto; }
+.ai { background: #1e293b; border: 1px solid #334155; }
+.input-area { display: flex; gap: 12px; padding: 16px 0; }
+.input-area input { flex:1; padding:12px 18px; border-radius:12px; border:1px solid #334155; background:#1e293b; color:#e2e8f0; font-size:1rem; outline:none; }
+.input-area input:focus { border-color:#3b82f6; }
+.input-area button { padding:12px 28px; border-radius:12px; border:none; background:#3b82f6; color:white; font-weight:600; cursor:pointer; }
+.input-area button:hover { background:#2563eb; }
+.disclaimer { font-size:0.7rem; color:#64748b; text-align:center; padding:8px; }
+.user-info { display: flex; align-items: center; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="header"><h2>⚖️ Pocket Lawyer</h2><div class="user-info"><span id="userDisplay">👤 Loading...</span><button class="btn" onclick="logout()">Logout</button><a href="/" class="btn">Home</a></div></div>
+<div class="chat-container">
+<div id="chatBox" class="chat-box"><div class="message ai"><strong>Pocket Lawyer</strong><br>Hello! Welcome to Pocket Lawyer! 👋<br>I am your AI legal assistant for Nigerian Law.<br><br>How can I help you today?</div></div>
+<div class="input-area"><input type="text" id="userInput" placeholder="Type your legal question..." onkeypress="if(event.key===13) sendMessage()"><button onclick="sendMessage()" id="sendBtn">Send</button></div>
+<div class="disclaimer">General guidance only. Consult a lawyer for legal advice.</div>
+</div>
+<script>
+const token=localStorage.getItem('token');
+if(!token)window.location.href='/auth/login';
+const user=JSON.parse(localStorage.getItem('user')||'{"username":"User"}');
+document.getElementById('userDisplay').textContent='👤 '+user.username;
+const chatBox=document.getElementById('chatBox');
+function addMessage(sender,text){const div=document.createElement('div');div.className='message '+sender;div.textContent=text;chatBox.appendChild(div);chatBox.scrollTop=chatBox.scrollHeight;}
+function addTyping(){const div=document.createElement('div');div.className='typing';div.id='typing';div.textContent='Thinking...';chatBox.appendChild(div);}
+function removeTyping(){const typing=document.getElementById('typing');if(typing)typing.remove();}
+async function sendMessage(){
+const input=document.getElementById('userInput');
+const message=input.value.trim();
+if(!message)return;
+input.value='';
+addMessage('user',message);
+addTyping();
+document.getElementById('sendBtn').disabled=true;
+try{
+const res=await fetch('/api/chat',{
+method:'POST',
+headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('token')},
+body:JSON.stringify({message:message})
+});
+const data=await res.json();
+removeTyping();
+if(data.pdf_url){
+addMessage('ai',data.reply+' Download: '+data.pdf_url);
+}else{
+addMessage('ai',data.reply||'No response received');
+}
+}catch(e){
+removeTyping();
+addMessage('ai','Error connecting to server.');
+}
+document.getElementById('sendBtn').disabled=false;
+}
+function logout(){localStorage.removeItem('token');localStorage.removeItem('user');window.location.href='/auth/login';}
+const params=new URLSearchParams(window.location.search);
+const q=params.get('q');
+if(q){document.getElementById('userInput').value=q;sendMessage();}
+</script>
+</body>
+</html>
