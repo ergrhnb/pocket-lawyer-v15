@@ -748,7 +748,7 @@ async def register(user_data: UserCreate, db: SessionLocal = Depends(get_db)):
         return {
             "access_token": token,
             "token_type": "bearer",
-            "user": UserResponse.from_orm(user)
+            "user": UserResponse.model_validate(user)
         }
     except HTTPException:
         raise
@@ -777,7 +777,7 @@ async def login(login_data: UserLogin, db: SessionLocal = Depends(get_db)):
         return {
             "access_token": token,
             "token_type": "bearer",
-            "user": UserResponse.from_orm(user)
+            "user": UserResponse.model_validate(user)
         }
     except HTTPException:
         raise
@@ -2532,3 +2532,4 @@ async def shutdown():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
+
