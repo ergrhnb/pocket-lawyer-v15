@@ -43,7 +43,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pocket_lawyer")
 
-VERSION = "15.0.5"
+VERSION = "15.0.6"
 APP_NAME = "Pocket Lawyer"
 
 # ============================================================
@@ -132,33 +132,33 @@ class ConfigStore:
     _config = {
         "brand_name": "Pocket Lawyer",
         "ai_providers": [
-            {"name": "Groq", "enabled": True, "priority": 1,
+            {"name": "Groq", "enabled": True,
              "api_key": os.getenv("GROQ_API_KEY", ""),
              "model": "llama-3.3-70b-versatile",
              "base_url": "https://api.groq.com/openai/v1"},
-            {"name": "SambaNova", "enabled": True, "priority": 2,
+            {"name": "SambaNova", "enabled": True,
              "api_key": os.getenv("SAMBANOVA_API_KEY", ""),
              "model": "Meta-Llama-3.3-70B-Instruct",
              "base_url": "https://api.sambanova.ai/v1"},
-            {"name": "Mistral", "enabled": True, "priority": 3,
+            {"name": "Mistral", "enabled": True,
              "api_key": os.getenv("MISTRAL_API_KEY", ""),
              "model": "mistral-large-latest",
              "base_url": "https://api.mistral.ai/v1"},
-            {"name": "OpenRouter", "enabled": True, "priority": 4,
+            {"name": "OpenRouter", "enabled": True,
              "api_key": os.getenv("OPENROUTER_API_KEY", ""),
              "model": "mistralai/mistral-large",
              "base_url": "https://openrouter.ai/api/v1"}
         ],
         "telegram": {"enabled": True, "bot_token": os.getenv("TELEGRAM_BOT_TOKEN", ""), "bot_username": "Mypocket_lawyerbot"},
         "legal_cases": [
-            {"title": "🏠 Tenancy & Landlord", "icon": "🏠", "category": "Property", "slug": "tenancy"},
-            {"title": "💼 Employment Law", "icon": "💼", "category": "Employment", "slug": "employment"},
-            {"title": "📝 Contracts", "icon": "📝", "category": "Business", "slug": "contract"},
-            {"title": "👨‍👩‍👧‍👦 Family Law", "icon": "👨‍👩‍👧‍👦", "category": "Family", "slug": "family"},
-            {"title": "💰 Debt Recovery", "icon": "💰", "category": "Finance", "slug": "debt"},
-            {"title": "⚖️ Criminal Law", "icon": "⚖️", "category": "Criminal", "slug": "criminal"},
-            {"title": "🏢 Corporate Law", "icon": "🏢", "category": "Business", "slug": "corporate"},
-            {"title": "🏡 Property Law", "icon": "🏡", "category": "Property", "slug": "property"}
+            {"title": "Tenancy & Landlord", "icon": "🏠", "category": "Property"},
+            {"title": "Employment Law", "icon": "💼", "category": "Employment"},
+            {"title": "Contracts", "icon": "📝", "category": "Business"},
+            {"title": "Family Law", "icon": "👨‍👩‍👧‍👦", "category": "Family"},
+            {"title": "Debt Recovery", "icon": "💰", "category": "Finance"},
+            {"title": "Criminal Law", "icon": "⚖️", "category": "Criminal"},
+            {"title": "Corporate Law", "icon": "🏢", "category": "Business"},
+            {"title": "Property Law", "icon": "🏡", "category": "Property"}
         ]
     }
 
@@ -169,10 +169,6 @@ class ConfigStore:
     @classmethod
     def get_ai_providers(cls):
         return cls._config.get("ai_providers", [])
-
-    @classmethod
-    def get_telegram(cls):
-        return cls._config.get("telegram", {})
 
     @classmethod
     def get_legal_cases(cls):
@@ -229,11 +225,6 @@ async def get_current_user_required(credentials: HTTPAuthorizationCredentials = 
         raise HTTPException(status_code=401, detail="Invalid authentication")
     return user
 
-async def get_admin_user(current_user: User = Depends(get_current_user_required)):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
-
 # ============================================================
 # PDF FUNCTIONS
 # ============================================================
@@ -254,7 +245,7 @@ documents = {}
 async def call_provider(base_url, api_key, model, messages):
     try:
         if not base_url or not api_key or not model:
-            return None, None
+            return None
         url = f"{base_url.rstrip('/')}/chat/completions"
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 2000}
@@ -262,17 +253,16 @@ async def call_provider(base_url, api_key, model, messages):
             resp = await client.post(url, json=payload, headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content")
-                return content, None
-            return None, None
+                return data.get("choices", [{}])[0].get("message", {}).get("content")
+            return None
     except:
-        return None, None
+        return None
 
 async def get_ai_response(messages):
     for provider in ConfigStore.get_ai_providers():
         if not provider.get("enabled"):
             continue
-        reply, _ = await call_provider(
+        reply = await call_provider(
             provider.get("base_url"),
             provider.get("api_key"),
             provider.get("model"),
@@ -349,7 +339,7 @@ async def chat(chat_req: ChatRequest):
     try:
         message = chat_req.message
         if not message:
-            raise HTTPException(status_code=400, detail="Message required")
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Message required"})
 
         # Check for PDF generation
         pdf_keywords = ["generate pdf", "create pdf", "make pdf", "tenancy agreement", "nda"]
@@ -369,7 +359,7 @@ async def chat(chat_req: ChatRequest):
             
             documents[doc_id] = {"title": title, "pdf": buffer}
             return {
-                "reply": f"✅ Document generated: {title}",
+                "reply": f"Document generated: {title}",
                 "pdf_url": f"/api/documents/{doc_id}/download",
                 "document_id": doc_id,
                 "is_pdf": True
@@ -400,7 +390,7 @@ async def health_check():
     return {"status": "healthy", "version": VERSION, "pdf_available": PDF_AVAILABLE}
 
 # ============================================================
-# FRONTEND
+# FRONTEND PAGES
 # ============================================================
 @app.get("/")
 async def home():
@@ -721,8 +711,8 @@ async def startup():
             logger.info("✅ Admin user created (admin/admin123)")
         
         if db.query(LegalCase).count() == 0:
-            for i, case in enumerate(ConfigStore.get_legal_cases()):
-                db.add(LegalCase(title=case["title"], icon=case["icon"], category=case["category"], slug=case["slug"], order=i))
+            for case in ConfigStore.get_legal_cases():
+                db.add(LegalCase(title=case["title"], icon=case["icon"], category=case["category"]))
             db.commit()
             logger.info("✅ Legal cases seeded")
     except Exception as e:
