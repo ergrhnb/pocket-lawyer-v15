@@ -1087,6 +1087,258 @@ async def startup():
 # ============================================================
 # MAIN
 # ============================================================
-if __name__ == "__main__":
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
+@app.get("/admin")
+async def admin_dashboard(current_user: User = Depends(get_current_user_required)):
+    if not current_user.is_superuser:
+        return HTMLResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Access Denied</title>
+        <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+        .container { background: #1e293b; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
+        h1 { color: #ef4444; }
+        a { color: #60a5fa; text-decoration: none; }
+        </style>
+        </head>
+        <body>
+        <div class="container">
+        <h1>⛔ Access Denied</h1>
+        <p>You need admin privileges to access this page.</p>
+        <a href="/">Go Home</a>
+        </div>
+        </body>
+        </html>
+        """, status_code=403)
+    
+    return HTMLResponse("""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Admin Dashboard - Pocket Lawyer</title>
+    <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .header { background: #1e293b; padding: 16px 40px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { color: #60a5fa; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-success { background: #10b981; color: white; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
+    .stat-value { font-size: 2rem; font-weight: bold; color: #60a5fa; }
+    .stat-label { color: #94a3b8; }
+    .card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 16px; }
+    .card h3 { color: #f59e0b; margin-bottom: 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>
+    </head>
+    <body>
+    <div class="header">
+        <h1>⚖️ Admin Dashboard</h1>
+        <div>
+            <a href="/chat" class="btn btn-primary">Chat</a>
+            <a href="/" class="btn" style="background:#334155;color:white;">Home</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card"><div class="stat-value">📊</div><div class="stat-label">System Online</div></div>
+            <div class="stat-card"><div class="stat-value">✅</div><div class="stat-label">PDF Generation</div></div>
+            <div class="stat-card"><div class="stat-value">🤖</div><div class="stat-label">AI Ready</div></div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <h3>🔧 Quick Actions</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                    <a href="/admin/users" class="btn btn-primary">Users</a>
+                    <a href="/admin/settings" class="btn btn-primary">Settings</a>
+                    <a href="/admin/logs" class="btn btn-primary">Logs</a>
+                </div>
+            </div>
+            <div class="card">
+                <h3>ℹ️ System Info</h3>
+                <p style="color:#94a3b8;font-size:0.9rem;">Version: 15.0.1</p>
+                <p style="color:#94a3b8;font-size:0.9rem;">Status: Running</p>
+            </div>
+        </div>
+    </div>
+    </body>
+    </html>
+    """)
+
+# ============================================================
+# ADD USER MANAGEMENT
+# ============================================================
+@app.get("/admin/users")
+async def admin_users(current_user: User = Depends(get_current_user_required), db: SessionLocal = Depends(get_db)):
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    users = db.query(User).all()
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>User Management - Pocket Lawyer</title>
+    <style>
+    * {{ margin:0; padding:0; box-sizing:border-box; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; }}
+    .header {{ background: #1e293b; padding: 16px 40px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }}
+    .header h1 {{ color: #60a5fa; }}
+    .btn {{ padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }}
+    .btn-primary {{ background: #3b82f6; color: white; }}
+    .btn-danger {{ background: #ef4444; color: white; }}
+    .container {{ max-width: 1200px; margin: 0 auto; padding: 24px; }}
+    table {{ width:100%; border-collapse: collapse; }}
+    th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #334155; }}
+    th {{ color: #94a3b8; font-weight: 600; }}
+    .badge {{ padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; }}
+    .badge-admin {{ background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }}
+    .badge-user {{ background: #3b82f620; color: #60a5fa; border: 1px solid #3b82f640; }}
+    </style>
+    </head>
+    <body>
+    <div class="header">
+        <h1>👥 User Management</h1>
+        <div><a href="/admin" class="btn btn-primary">Back</a></div>
+    </div>
+    <div class="container">
+        <table>
+        <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>
+    """
+    for user in users:
+        role = "Admin" if user.is_superuser else "User"
+        badge = "badge-admin" if user.is_superuser else "badge-user"
+        status = "✅ Active" if user.is_active else "❌ Inactive"
+        html += f"""
+        <tr>
+            <td>{user.id}</td>
+            <td>{user.username}</td>
+            <td>{user.email}</td>
+            <td><span class="badge {badge}">{role}</span></td>
+            <td>{status}</td>
+            <td>{user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A'}</td>
+        </tr>
+        """
+    html += """
+        </tbody>
+        </table>
+    </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+# ============================================================
+# ADD SETTINGS PAGE
+# ============================================================
+@app.get("/admin/settings")
+async def admin_settings(current_user: User = Depends(get_current_user_required)):
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    return HTMLResponse("""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Settings - Pocket Lawyer</title>
+    <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .header { background: #1e293b; padding: 16px 40px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { color: #60a5fa; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+    .card { background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 16px; }
+    .card h3 { color: #f59e0b; margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { color: #94a3b8; display: block; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; }
+    .form-group input:focus { border-color: #3b82f6; outline: none; }
+    </style>
+    </head>
+    <body>
+    <div class="header">
+        <h1>⚙️ Settings</h1>
+        <div><a href="/admin" class="btn btn-primary">Back</a></div>
+    </div>
+    <div class="container">
+        <div class="card">
+            <h3>🔄 Coming Soon</h3>
+            <p style="color:#94a3b8;">Advanced settings will be available in the next update.</p>
+            <p style="color:#94a3b8;margin-top:8px;">For now, configure environment variables in Render.</p>
+        </div>
+    </div>
+    </body>
+    </html>
+    """)
+
+# ============================================================
+# ADD LOGS PAGE
+# ============================================================
+@app.get("/admin/logs")
+async def admin_logs(current_user: User = Depends(get_current_user_required)):
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    logs = []
+    try:
+        with open("logs/pocket_lawyer.log", "r") as f:
+            logs = f.readlines()[-50:]  # Last 50 lines
+    except:
+        logs = ["No logs available"]
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Logs - Pocket Lawyer</title>
+    <style>
+    * {{ margin:0; padding:0; box-sizing:border-box; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0f172a; color: #e2e8f0; }}
+    .header {{ background: #1e293b; padding: 16px 40px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }}
+    .header h1 {{ color: #60a5fa; }}
+    .btn {{ padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }}
+    .btn-primary {{ background: #3b82f6; color: white; }}
+    .container {{ max-width: 1200px; margin: 0 auto; padding: 24px; }}
+    .log-container {{ background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.8rem; max-height: 600px; overflow-y: auto; }}
+    .log-line {{ padding: 4px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; }}
+    .log-error {{ color: #ef4444; }}
+    .log-warning {{ color: #f59e0b; }}
+    .log-info {{ color: #60a5fa; }}
+    </style>
+    </head>
+    <body>
+    <div class="header">
+        <h1>📋 System Logs</h1>
+        <div><a href="/admin" class="btn btn-primary">Back</a></div>
+    </div>
+    <div class="container">
+        <div class="log-container">
+    """
+    for line in logs:
+        line = line.strip()
+        if "ERROR" in line:
+            cls = "log-error"
+        elif "WARNING" in line:
+            cls = "log-warning"
+        else:
+            cls = "log-info"
+        html += f'<div class="log-line {cls}">{line}</div>'
+    html += """
+        </div>
+    </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
+
